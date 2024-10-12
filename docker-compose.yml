@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  asterisk:
+    image: mlan/asterisk   # Puedes reemplazar con otra imagen si lo prefieres
+    container_name: asterisk
+    platform: linux/amd64
+    ports:
+      - "5060:5060/udp"                     # SIP UDP port
+      - "5060:5060"                         # SIP TCP port
+      - "5061:5061"                         # SIP TLS port
+      - "10000-10099:10000-10099/udp"       # RTP ports
+      - "5038:5038"                         # AMI port for Python connection
+    environment:
+      - ASTERISK_UID=1000
+      - ASTERISK_GID=1000
+    volumes:
+      - ./asterisk_config:/etc/asterisk     # Monta la configuración personalizada de Asterisk
+      - ./log_asterisk:/var/log/asterisk    # Monta los logs de Asterisk
+    restart: unless-stopped                 # Asterisk se reiniciará automáticamente en caso de fallo
+    stdin_open: true                        # Para que acepte entrada en la terminal
+    tty: true                               # Para que puedas interactuar con el contenedor
+    networks:
+      - asterisk_net
+
+networks:
+  asterisk_net:
+    driver: bridge
