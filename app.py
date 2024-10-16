@@ -1,42 +1,44 @@
+from gtts import gTTS
 from asterisk.ami import AMIClient, SimpleAction
 from time import sleep
+import os
+
+def text_to_speech(text, output_file):
+    tts = gTTS(text=text, lang='en')
+    tts.save(output_file)
+    print(f"Audio file saved as {output_file}")
 
 def handle_call():
+    # Conectar al AMI de Asterisk
     client = AMIClient(address='localhost', port=5038)
     future = client.login(username='python_user', secret='admin')
 
-    if future.response.is_error():
+    if not future.response or future.response.is_error():
         print("Failed to connect to AMI:", future.response)
         return
 
-    # Ejemplo: Escuchar eventos y capturar el DTMF del usuario
-    def on_dtmf(event):
-        print(f"Received DTMF: {event['Digit']}")
-        if event['Digit'] == '1':
-            # Hacer algo cuando se recibe '1'
-            print("User pressed 1")
-        elif event['Digit'] == '2':
-            # Hacer algo cuando se recibe '2'
-            print("User pressed 2")
-
-    client.add_event_listener(on_dtmf)
-
-    # Realizar la llamada entre softphones (o a través de un IVR)
+    # Originate una llamada que active el IVR en la extensión 1001
     action = SimpleAction(
         'Originate',
         Channel='PJSIP/1001',
-        Exten='1002',
         Context='internal',
+        Exten='1001',
+        Data='ivr_message',
         Priority=1,
-        CallerID='Softphone1'
+        CallerID='IVR Test',
+        Timeout=30000,
+        Async=True
     )
 
+    # Enviar la acción al AMI
     future = client.send_action(action)
     response = future.response
 
-    print("Call initiated:", response)
+    if response:
+        print("Call initiated:", response)
+    else:
+        print("No response received from Asterisk")
 
-    # Mantener la conexión abierta para recibir eventos
     try:
         while True:
             sleep(1)
@@ -44,4 +46,14 @@ def handle_call():
         client.logoff()
 
 if __name__ == "__main__":
+    text = """Verifica el Canal de Llamada
+En tu código, estás originando la llamada a PJSIP/1001, lo cual es correcto si tu softphone está configurado en ese canal. Verifica que el canal coincida con el softphone que estás utilizando.
+
+Con estos pasos adicionales, deberías poder reproducir el audio. Si el problema persiste, revisa los logs de Asterisk para obtener más detalles sobre el error y comparte el mensaje exacto que aparece allí."""
+    output_file = "audios/ivr_message.wav"
+    
+    # Convertir texto a voz y guardar el archivo
+    text_to_speech(text, output_file)
+
+    # Hacer la llamada desde el IVR
     handle_call()
