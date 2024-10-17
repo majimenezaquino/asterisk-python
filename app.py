@@ -20,9 +20,9 @@ def handle_call():
     # Originate una llamada que active el IVR en la extensión 1001
     action = SimpleAction(
         'Originate',
-        Channel='PJSIP/1001',
+        Channel='PJSIP/1003',
         Context='internal',
-        Exten='1001',
+        Exten='1003',
         Data='ivr_message',
         Priority=1,
         CallerID='IVR Test',
