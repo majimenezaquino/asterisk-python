@@ -1,84 +1,81 @@
-from asterisk.ami import AMIClient, SimpleAction
-from time import sleep
+import asyncio
+from panoramisk import Manager
 
-def handle_call():
-    # Conectar al AMI de Asterisk
-    client = AMIClient(address='localhost', port=5038)
-    future = client.login(username='python_user', secret='admin')
-
-    if not future.response or future.response.is_error():
-        print("Failed to connect to AMI:", future.response)
-        return
-
-    # Originate una llamada que active el IVR en la extensión 1001
-    action = SimpleAction(
-        'Originate',
-        Channel='PJSIP/1003',  # Asegúrate que el canal PJSIP está correcto
-        Context='bank_credit',  # Contexto donde se encuentra la lógica del IVR
-        Exten='s',              # Usamos 's' para iniciar el IVR desde la extensión de inicio
-        Priority=1,
-        CallerID='IVR Test',
-        Timeout=30000,
-        Async=False  # Cambiamos Async a False para evitar duplicación de llamadas
-    )
-
-    # Enviar la acción al AMI
-    future = client.send_action(action)
-    response = future.response
-
-    if response:
-        print("Call initiated:", response)
-    else:
-        print("No response received from Asterisk")
+async def handle_call(manager):
+    originate_action = {
+        'Action': 'Originate',
+        'Channel': 'PJSIP/1003',
+        'Context': 'bank_credit',
+        'Exten': 's',
+        'Priority': 1,
+        'CallerID': 'IVR Test',
+        'Timeout': 30000,
+        'Async': 'false'
+    }
 
     try:
-        while True:
-            sleep(1)
-    except KeyboardInterrupt:
-        client.logoff()
+        response = await manager.send_action(originate_action)
+        if response.Response == "Success":
+            print("Call initiated:", response)
+        else:
+            print("Failed to initiate call:", response)
+    except Exception as e:
+        print(f"Error initiating call: {e}")
 
-def validate_pin(client, pin, channel):
-    # Aquí puedes cambiar el PIN a lo que desees validar
+async def validate_pin(manager, pin, channel):
     expected_pin = "1234"
     
     if pin == expected_pin:
-        print("PIN correcto")
-        client.send_action({
-            'Action': 'SetVar',
-            'Channel': channel,
-            'Variable': 'Result',
-            'Value': 'valid'
-        })
+        print(f"PIN correcto: {pin}")
+        result = "valid"
     else:
-        print("PIN incorrecto")
-        client.send_action({
-            'Action': 'SetVar',
-            'Channel': channel,
-            'Variable': 'Result',
-            'Value': 'invalid'
-        })
+        print(f"PIN incorrecto: {pin}")
+        result = "invalid"
 
-def handle_ivr_pin(client):
-    # Aquí manejarías la captura del PIN por DTMF o similar
-    # Esperamos recibir un evento de tipo UserEvent desde Asterisk
-    def on_user_event(event):
-        if event.headers['UserEvent'] == 'PinValidation':
-            pin = event.headers['PIN']
-            channel = event.headers['Channel']
-            print(f"PIN recibido: {pin} para validar")
-            validate_pin(client, pin, channel)
+    set_var_action = {
+        'Action': 'SetVar',
+        'Channel': channel,
+        'Variable': 'Result',
+        'Value': result
+    }
+    try:
+        await manager.send_action(set_var_action)
+    except Exception as e:
+        print(f"Error setting variable: {e}")
 
-    # Registramos el manejador de eventos
-    client.register_event('UserEvent', on_user_event)
+async def handle_user_event(manager, event):
+    if event.UserEvent == 'PinValidation':
+        pin = event.get('PIN')
+        channel = event.get('Channel')
+        department = event.get('Department')
+        
+        if pin and channel:
+            print(f"PIN ingresado por el usuario: {pin}")
+            print(f"Departamento seleccionado: {department}")
+            await validate_pin(manager, pin, channel)
+        else:
+            print("Falta información en el evento UserEvent: no se pudo validar el PIN.")
+
+async def main():
+    manager = Manager(host='localhost', port=5038, username='python_user', secret='admin')
+    
+    try:
+        # Connect to Asterisk AMI
+        await manager.connect()
+        
+        # Register event handler
+        manager.register_event('UserEvent', handle_user_event)
+        
+        # Initiate the call
+        await handle_call(manager)
+        
+        # Keep the script running
+        while True:
+            await asyncio.sleep(1)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    finally:
+        await manager.close()
 
 if __name__ == "__main__":
-    # Hacer la llamada desde el IVR
-    handle_call()
-
-    # Validar el PIN una vez que el IVR lo reciba
-    client = AMIClient(address='localhost', port=5038)
-    future = client.login(username='python_user', secret='admin')
-    if future.response and not future.response.is_error():
-        handle_ivr_pin(client)
-    else:
-        print("No se pudo conectar a AMI para manejar el PIN.")
+    asyncio.run(main())
