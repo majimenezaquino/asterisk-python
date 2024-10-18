@@ -1,15 +1,25 @@
 from gtts import gTTS
+from pydub import AudioSegment
 import os
 
-def text_to_speech(text, output_file):
-    tts = gTTS(text=text, lang='en')
-    tts.save(output_file)
-    print(f"Audio file saved as {output_file}")
+# Función para generar el archivo de audio con gTTS
+def create_audio(text, filename):
+    tts = gTTS(text=text, lang='es')
+    temp_file = f"./audios/{filename}.mp3"  # Archivo temporal en formato mp3
+    tts.save(temp_file)
+    convert_to_wav(temp_file, f"./audios/{filename}.wav")  # Convertir a formato WAV
+
+# Función para convertir el archivo de audio a formato 8000 Hz, mono
+def convert_to_wav(input_file, output_file):
+    audio = AudioSegment.from_file(input_file)
+    audio = audio.set_frame_rate(8000).set_channels(1)  # Convertir a 8000 Hz y mono
+    audio.export(output_file, format="wav")  # Exportar como archivo WAV
+    os.remove(input_file)  # Eliminar el archivo temporal .mp3
+    print(f"Convertido {output_file} a formato compatible con Asterisk.")
 
 if __name__ == "__main__":
-    text = """Verifica el Canal de Llamada
-En tu código, estás originando la llamada a PJSIP/1001, lo cual es correcto si tu softphone está configurado en ese canal. Verifica que el canal coincida con el softphone que estás utilizando.
-
-Con estos pasos adicionales, deberías poder reproducir el audio. Si el problema persiste, revisa los logs de Asterisk para obtener más detalles sobre el error y comparte el mensaje exacto que aparece allí."""
-    output_file = "./audios/ivr_message.wav"  # Guardar en el directorio montado
-    text_to_speech(text, output_file)
+    create_audio("Bienvenido al sistema bancario. Para ventas presione 1, para servicio al cliente presione 2, para hablar con un representante presione 3.", "welcome_message")
+    create_audio("Por favor, seleccione una opción.", "please-select")
+    create_audio("Por favor, introduzca su código PIN.", "enter-your-pin")
+    create_audio("Opción inválida, por favor intente nuevamente.", "invalid-option")
+    create_audio("Código PIN inválido.", "invalid-pin")
