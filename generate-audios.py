@@ -23,9 +23,8 @@ Dear Ramon Perez.
 This is a notification regarding your VISA CLASSIC Banesco card ending in 6001. 
 A foreign transaction of two hundred sixty-one dollars and thirty-one cents has been made. 
 If you recognize this transaction, no further action is required. If you do not recognize this transaction, 
-please press 1 to report it, press 2 to be transferred to the Fraud Department, or press 3 to repeat this message.
+please press 1 to report it, press 2 to be transferred to the Fraud Department, or press 3 to repeat this message. Please select an option.
 ""","welcome_message")
-    create_audio("Please select an option.", "please_select_option")
     create_audio("You are being transferred to the Customer Service Department. Please stay on the line while we connect you with a representative.", "transferred_customer_service")
     create_audio("You are being transferred to the Fraud Department. Please stay on the line while we connect you with a representative.", "transferred_fraud_department")
 
