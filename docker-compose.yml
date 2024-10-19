@@ -18,6 +18,7 @@ services:
       - ./asterisk_config:/etc/asterisk     # Monta la configuración personalizada de Asterisk
       - ./log_asterisk:/var/log/asterisk  # Monta los logs de Asterisk
       - ./audios:/var/lib/asterisk/sounds # Monta los audios de Asterisk
+      - ./audios_hold:/var/lib/asterisk/moh/custom # Monta los mensajes de voz
     restart: unless-stopped                 # Asterisk se reiniciará automáticamente en caso de fallo
     stdin_open: true                        # Para que acepte entrada en la terminal
     tty: true                               # Para que puedas interactuar con el contenedor
