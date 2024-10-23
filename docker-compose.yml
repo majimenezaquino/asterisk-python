@@ -2,26 +2,38 @@ version: '3.8'
 
 services:
   asterisk:
-    image: mlan/asterisk:xtra   # Puedes reemplazar con otra imagen si lo prefieres
+    image: mlan/asterisk:xtra
     container_name: asterisk
     platform: linux/amd64
     ports:
-      - "5060:5060/udp"                     # SIP UDP port
-      - "5060:5060"                         # SIP TCP port
-      - "5061:5061"                         # SIP TLS port
-      - "10000-10099:10000-10099/udp"       # RTP ports
-      - "5038:5038"                         # AMI port for Python connection
+      - "5060:5060/udp"
+      - "5060:5060"
+      - "5061:5061"
+      - "10000-10099:10000-10099/udp"
+      - "5038:5038"
     environment:
       - ASTERISK_UID=1000
       - ASTERISK_GID=1000
     volumes:
-      - ./asterisk_config:/etc/asterisk     # Monta la configuración personalizada de Asterisk
-      - ./log_asterisk:/var/log/asterisk  # Monta los logs de Asterisk
-      - ./audios:/var/lib/asterisk/sounds # Monta los audios de Asterisk
-      - ./audios_hold:/var/lib/asterisk/moh/custom # Monta los mensajes de voz
-    restart: unless-stopped                 # Asterisk se reiniciará automáticamente en caso de fallo
-    stdin_open: true                        # Para que acepte entrada en la terminal
-    tty: true                               # Para que puedas interactuar con el contenedor
+      - ./asterisk_config:/etc/asterisk
+      - ./log_asterisk:/var/log/asterisk
+      - ./audios:/var/lib/asterisk/sounds
+      - ./audios_hold:/var/lib/asterisk/moh/custom
+      - ./asterisk_key:/etc/asterisk/key
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    networks:
+      - asterisk_net
+
+  noip:
+    image: madduci/docker-noip
+    container_name: noip-renewer
+    environment:
+      - NOIP_HOSTNAMES=ivr-asterisk.ddns.net
+      - NOIP_USERNAME=vh5wzvz
+      - NOIP_PASSWORD=XiiZ8NsGpJLD
+    restart: unless-stopped
     networks:
       - asterisk_net
 

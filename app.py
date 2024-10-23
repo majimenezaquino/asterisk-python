@@ -12,6 +12,7 @@ async def handle_call(manager):
         'Timeout': 30000,
         'Async': 'false'
     }
+#channel originate PJSIP/12035370062@signalwire extension s@bank_credit
 
     try:
         response = await manager.send_action(originate_action)
@@ -79,3 +80,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+    #channel originate PJSIP/12035370062@signalwire extension s@bank_credit
