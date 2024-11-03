@@ -4,7 +4,7 @@ from panoramisk import Manager
 async def handle_call(manager):
     originate_action = {
         'Action': 'Originate',
-        'Channel': 'PJSIP/1003',
+        'Channel': 'PJSIP/12542376129@signalwire',
         'Context': 'bank_credit',
         'Exten': 's',
         'Priority': 1,
@@ -12,7 +12,7 @@ async def handle_call(manager):
         'Timeout': 30000,
         'Async': 'false'
     }
-#channel originate PJSIP/12035370062@signalwire extension s@bank_credit
+#channel originate PJSIP/12542376129@signalwire extension s@bank_credit
 
     try:
         response = await manager.send_action(originate_action)
