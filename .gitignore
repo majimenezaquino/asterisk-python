@@ -1,4 +1,4 @@
 log_asterisk/*
 venv/
 var_asterisk/*
-audios/*
+audios/*message*.wav

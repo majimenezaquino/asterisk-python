@@ -1,84 +1,125 @@
 import asyncio
+import logging
 from panoramisk import Manager
 
-async def handle_call(manager):
-    originate_action = {
-        'Action': 'Originate',
-        'Channel': 'PJSIP/12542376129@signalwire',
-        'Context': 'bank_credit',
-        'Exten': 's',
-        'Priority': 1,
-        'CallerID': 'IVR Test',
-        'Timeout': 30000,
-        'Async': 'false'
-    }
-#channel originate PJSIP/12542376129@signalwire extension s@bank_credit
+# Configuración de logging para ver los eventos importantes en detalle
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-    try:
-        response = await manager.send_action(originate_action)
-        if response.Response == "Success":
-            print("Call initiated:", response)
-        else:
-            print("Failed to initiate call:", response)
-    except Exception as e:
-        print(f"Error initiating call: {e}")
+# Variable global para el estado del PIN
+pin_validated = False
 
 async def validate_pin(manager, pin, channel):
-    expected_pin = "1234"
+    global pin_validated
+    expected_pin = "123456"  # Cambia esto para obtener el PIN esperado desde una base de datos si es necesario
     
+    logger.info(f"=== Validación de PIN ===")
+    logger.info(f"PIN recibido: '{pin}'")
+    logger.info(f"PIN esperado: '{expected_pin}'")
+    logger.info(f"Canal: {channel}")
+    
+    # Comparación del PIN
     if pin == expected_pin:
-        print(f"PIN correcto: {pin}")
+        pin_validated = True
         result = "valid"
+        logger.info("Resultado: PIN VÁLIDO ✓")
     else:
-        print(f"PIN incorrecto: {pin}")
+        pin_validated = False
         result = "invalid"
+        logger.info("Resultado: PIN INVÁLIDO ✗")
 
+    # Configurar variable de estado en Asterisk
     set_var_action = {
         'Action': 'SetVar',
         'Channel': channel,
-        'Variable': 'Result',
+        'Variable': 'pin_status',
         'Value': result
     }
-    try:
-        await manager.send_action(set_var_action)
-    except Exception as e:
-        print(f"Error setting variable: {e}")
-
-async def handle_user_event(manager, event):
-    if event.UserEvent == 'PinValidation':
-        pin = event.get('PIN')
-        channel = event.get('Channel')
-        department = event.get('Department')
-        
-        if pin and channel:
-            print(f"PIN ingresado por el usuario: {pin}")
-            print(f"Departamento seleccionado: {department}")
-            await validate_pin(manager, pin, channel)
-        else:
-            print("Falta información en el evento UserEvent: no se pudo validar el PIN.")
-
-async def main():
-    manager = Manager(host='localhost', port=5038, username='python_user', secret='admin')
     
     try:
-        # Connect to Asterisk AMI
+        response = await manager.send_action(set_var_action)
+        message = response.get('Message')
+        logger.info(f"Respuesta de Asterisk: {message}")
+    except Exception as e:
+        logger.error(f"Error al configurar variable: {e}")
+
+async def handle_user_event(manager, event):
+    """Manejar eventos específicos relacionados al PIN"""
+    global pin_validated
+    if event.Event == 'VarSet':
+        if event.Variable == 'pin':
+            pin = event.Value
+            channel = event.Channel
+            await validate_pin(manager, pin, channel)
+        elif event.Variable == 'READSTATUS' and event.Value == 'TIMEOUT' and not pin_validated:
+            #logger.info("El tiempo de entrada del PIN ha expirado")
+            pass
+
+async def initiate_call(manager):
+    """Función para iniciar la llamada"""
+    originate_action = {
+        'Action': 'Originate',
+        'Channel': 'PJSIP/1001',  # Cambia el canal a la extensión que desees
+        'Context': 'bank_credit',  # Contexto que maneja el IVR en Asterisk
+        'Exten': 's',              # Extensión para iniciar el IVR
+        'Priority': 1,
+        'CallerID': '1002',        # ID de la llamada
+        'Timeout': 30000,
+        'Async': 'false'
+    }
+    
+    try:
+        response = await manager.send_action(originate_action)
+        message = response.get('Message')
+        logger.info(f"Respuesta de inicio de llamada: {message}")
+    except Exception as e:
+        logger.error(f"Error al iniciar llamada: {e}")
+
+async def handle_events(manager, event):
+  logger.info(f"Evento recibido custom: {event}")
+
+async def handle_ivr_status(manager, event):
+    """Manejar eventos de IVR personalizados de Asterisk"""
+    step = event.get('Step')
+    message = event.get('Message')
+    
+    if step and message:
+        logger.info(f"IVR Step: {step} - {message}")
+    else:
+        logger.warning("Evento IVR sin información completa")
+
+async def main():
+    # Conectarse al AMI de Asterisk
+    manager = Manager(
+        host='localhost',
+        port=5038,
+        username='python_user',
+        secret='admin'
+    )
+    
+    try:
         await manager.connect()
+        logger.info("Conectado a Asterisk AMI")
+        manager.register_event('*', handle_events) 
+        # Registrar el evento específico para manejo del PIN
+        manager.register_event('VarSet', handle_user_event)
+        manager.register_event('UserEvent', handle_ivr_status) 
         
-        # Register event handler
-        manager.register_event('UserEvent', handle_user_event)
+        # Iniciar la llamada
+        await initiate_call(manager)
         
-        # Initiate the call
-        await handle_call(manager)
-        
-        # Keep the script running
+        # Mantener el script corriendo para escuchar los eventos en tiempo real
         while True:
             await asyncio.sleep(1)
+            
     except Exception as e:
-        print(f"An error occurred: {e}")
+        logger.error(f"Error en el loop principal: {e}", exc_info=True)
     finally:
         await manager.close()
+        logger.info("Conexión AMI cerrada")
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-    #channel originate PJSIP/1002 extension s@bank_credit
