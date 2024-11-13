@@ -1,0 +1,3 @@
+Fecha: 2024-11-13 15:51:47, Número llamado: 1001-00000016, PIN ingresado: 12357, Resultado: invalid
+Fecha: 2024-11-13 15:52:04, Número llamado: 1001-00000016, PIN ingresado: 12345, Resultado: invalid
+Fecha: 2024-11-13 15:52:20, Número llamado: 1001-00000016, PIN ingresado: 123456, Resultado: valid

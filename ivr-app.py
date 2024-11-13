@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from panoramisk import Manager
+from datetime import datetime
 
 # Configuración de logging para ver los eventos importantes en detalle
 logging.basicConfig(
@@ -12,9 +13,16 @@ logger = logging.getLogger(__name__)
 # Variable global para el estado del PIN
 pin_validated = False
 
+def log_pin_attempt(channel, pin, result):
+    """Función para registrar el intento de PIN en un archivo de texto"""
+    date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    called_number = channel.split('/')[-1]  # Extraer número del canal, si está en el formato `PJSIP/numero`
+    with open("pin_attempts.txt", "a") as file:
+        file.write(f"Fecha: {date_time}, Número llamado: {called_number}, PIN ingresado: {pin}, Resultado: {result}\n")
+
 async def validate_pin(manager, pin, channel):
     global pin_validated
-    expected_pin = "123456"  # Cambia esto para obtener el PIN esperado desde una base de datos si es necesario
+    expected_pin = "123456999999"  # Cambia esto para obtener el PIN esperado desde una base de datos si es necesario
     
     logger.info(f"=== Validación de PIN ===")
     logger.info(f"PIN recibido: '{pin}'")
@@ -30,6 +38,9 @@ async def validate_pin(manager, pin, channel):
         pin_validated = False
         result = "invalid"
         logger.info("Resultado: PIN INVÁLIDO ✗")
+
+    # Registrar el intento de PIN en el archivo de texto
+    log_pin_attempt(channel, pin, result)
 
     # Configurar variable de estado en Asterisk
     set_var_action = {
@@ -55,14 +66,13 @@ async def handle_user_event(manager, event):
             channel = event.Channel
             await validate_pin(manager, pin, channel)
         elif event.Variable == 'READSTATUS' and event.Value == 'TIMEOUT' and not pin_validated:
-            #logger.info("El tiempo de entrada del PIN ha expirado")
             pass
 
 async def initiate_call(manager):
     """Función para iniciar la llamada"""
     originate_action = {
         'Action': 'Originate',
-        'Channel': 'PJSIP/1001',  # Cambia el canal a la extensión que desees
+        'Channel': 'PJSIP/573212262637@signalwire',  # Cambia el canal a la extensión que desees
         'Context': 'bank_credit',  # Contexto que maneja el IVR en Asterisk
         'Exten': 's',              # Extensión para iniciar el IVR
         'Priority': 1,
@@ -79,11 +89,10 @@ async def initiate_call(manager):
         logger.error(f"Error al iniciar llamada: {e}")
 
 async def handle_events(manager, event):
-  logger.info(f"Evento recibido custom: {event}")
+    logger.info(f"Evento recibido custom: {event}")
 
 async def handle_ivr_status(manager, event):
     """Manejar eventos de IVR personalizados de Asterisk"""
-   
     step = event.get('AppData')
     
     if step:
@@ -101,7 +110,6 @@ async def main():
     try:
         await manager.connect()
         logger.info("Conectado a Asterisk AMI")
-        #manager.register_event('*', handle_events) 
         # Registrar el evento específico para manejo del PIN
         manager.register_event('VarSet', handle_user_event)
         manager.register_event('*', handle_ivr_status) 
