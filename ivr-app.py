@@ -83,13 +83,11 @@ async def handle_events(manager, event):
 
 async def handle_ivr_status(manager, event):
     """Manejar eventos de IVR personalizados de Asterisk"""
-    step = event.get('Step')
-    message = event.get('Message')
+   
+    step = event.get('AppData')
     
-    if step and message:
-        logger.info(f"IVR Step: {step} - {message}")
-    else:
-        logger.warning("Evento IVR sin información completa")
+    if step:
+        logger.info(f"IVR Step: {step}")
 
 async def main():
     # Conectarse al AMI de Asterisk
@@ -103,10 +101,10 @@ async def main():
     try:
         await manager.connect()
         logger.info("Conectado a Asterisk AMI")
-        manager.register_event('*', handle_events) 
+        #manager.register_event('*', handle_events) 
         # Registrar el evento específico para manejo del PIN
         manager.register_event('VarSet', handle_user_event)
-        manager.register_event('UserEvent', handle_ivr_status) 
+        manager.register_event('*', handle_ivr_status) 
         
         # Iniciar la llamada
         await initiate_call(manager)
