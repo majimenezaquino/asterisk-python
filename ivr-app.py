@@ -72,11 +72,11 @@ async def initiate_call(manager):
     """Función para iniciar la llamada"""
     originate_action = {
         'Action': 'Originate',
-        'Channel': 'PJSIP/573212262637@callwithus',  # Cambia el canal a la extensión que desees
-        'Context': 'bank_credit',  # Contexto que maneja el IVR en Asterisk
+        'Channel': 'PJSIP/1001',  # Cambia el canal a la extensión que desees
+        'Context': 'banco',  # Contexto que maneja el IVR en Asterisk
         'Exten': 's',              # Extensión para iniciar el IVR
         'Priority': 1,
-        'CallerID': '1002',        # ID de la llamada
+        'CallerID': '<18092000221>',      # ID de la llamada
         'Timeout': 30000,
         'Async': 'false'
     }
