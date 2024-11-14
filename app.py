@@ -1,7 +1,9 @@
+import asyncio
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from gtts import gTTS
 from pydub import AudioSegment
+from ivr import main
 import os
 
 # Configuration
@@ -13,7 +15,9 @@ app = FastAPI(
     description="API to convert a custom message into a WAV audio format compatible with Asterisk",
     version="1.0.0"
 )
-
+class CallParams(BaseModel):
+    channel: str = Field(..., description="Channel to make the call.")
+    ivr: str = Field(..., description="IVR context to handle the call.")
 # Personal data model
 class PersonalData(BaseModel):
     sex: str = Field(..., description="Gender of the person ('M' for male, 'F' for female).")
@@ -79,6 +83,16 @@ def convert_to_wav(input_file, output_file):
     audio = AudioSegment.from_file(input_file)
     audio = audio.set_frame_rate(8000).set_channels(1)
     audio.export(output_file, format="wav")
+
+# Endpoint to generate the audio message in Spanish
+@app.post("/call", summary="Enpoint to make a call")
+async def generate_audio_es(data: CallParams):
+    try:
+     await main( data)
+     return {"message": "Llamada realizada exitosamente"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al llamar: {e}")
+
 
 # Endpoint to generate the audio message in Spanish
 @app.post("/generate-audio-es", summary="Converts personal data into an audio message in Spanish")

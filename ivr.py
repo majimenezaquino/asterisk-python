@@ -3,6 +3,12 @@ import logging
 from panoramisk import Manager
 from datetime import datetime
 
+from pydantic import BaseModel
+
+class Params(BaseModel):
+    channel: str
+    ivr: str
+
 # Configuración de logging para ver los eventos importantes en detalle
 logging.basicConfig(
     level=logging.INFO,
@@ -68,12 +74,12 @@ async def handle_user_event(manager, event):
         elif event.Variable == 'READSTATUS' and event.Value == 'TIMEOUT' and not pin_validated:
             pass
 
-async def initiate_call(manager):
+async def initiate_call(manager, params: Params):
     """Función para iniciar la llamada"""
     originate_action = {
         'Action': 'Originate',
-        'Channel': 'PJSIP/1001',  # Cambia el canal a la extensión que desees
-        'Context': 'banco',  # Contexto que maneja el IVR en Asterisk
+        'Channel': params.channel, #'PJSIP/1001' Cambia el canal a la extensión que desees
+        'Context':  params.ivr,#'banco' Contexto que maneja el IVR en Asterisk
         'Exten': 's',              # Extensión para iniciar el IVR
         'Priority': 1,
         'CallerID': '<18092000221>',      # ID de la llamada
@@ -89,17 +95,38 @@ async def initiate_call(manager):
     except Exception as e:
         logger.error(f"Error al iniciar llamada: {e}")
 
+def get_device_state_description(state):
+    device_states = {
+        "NOT_INUSE": "El dispositivo no está en uso. No hay llamadas activas.",
+        "INUSE": "El dispositivo está en uso. Hay una o más llamadas activas.",
+        "BUSY": "El dispositivo está ocupado y no puede recibir nuevas llamadas.",
+        "INVALID": "El dispositivo es inválido o no existe en el sistema.",
+        "UNAVAILABLE": "El dispositivo no está disponible. Puede estar fuera de línea o desconectado.",
+        "RINGING": "El dispositivo está sonando. Indica una llamada entrante.",
+        "RINGINUSE": "El dispositivo está sonando y en uso. Está ocupado pero tiene una llamada entrante.",
+        "ONHOLD": "El dispositivo está en espera. Una llamada está en espera en el dispositivo."
+    }
+    
+    return device_states.get(state, "Estado desconocido")
 async def handle_events(manager, event):
     logger.info(f"Evento recibido custom: {event}")
 
 async def handle_ivr_status(manager, event):
     """Manejar eventos de IVR personalizados de Asterisk"""
+    if event.Event == 'DeviceStateChange':
+        device = event.get('Device')
+        state = event.get('State')
+        logger.info(f"Device: {device}, State: {get_device_state_description(state)}")
+        logger.info("\n\n")
+        if state == 'NOT_INUSE':
+            return False
+
     step = event.get('AppData')
-    
     if step:
+        
         logger.info(f"IVR Step: {step}")
 
-async def main():
+async def main(data: Params):
     # Conectarse al AMI de Asterisk
     manager = Manager(
         host='localhost',
@@ -116,7 +143,7 @@ async def main():
         manager.register_event('*', handle_ivr_status) 
         
         # Iniciar la llamada
-        await initiate_call(manager)
+        await initiate_call(manager, data)
         
         # Mantener el script corriendo para escuchar los eventos en tiempo real
         while True:
@@ -128,5 +155,5 @@ async def main():
         await manager.close()
         logger.info("Conexión AMI cerrada")
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# if __name__ == "__main__":
+#     asyncio.run(main( Params(channel='PJSIP/1001', ivr='banco')))
