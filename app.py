@@ -16,15 +16,15 @@ app = FastAPI(
     version="1.0.0"
 )
 class CallParams(BaseModel):
-    channel: str = Field(..., description="Channel to make the call.")
-    ivr: str = Field(..., description="IVR context to handle the call.")
+    channel: str = Field(..., description="Channel to make the call.", examples=["PJSIP/1001"])
+    ivr: str = Field(..., description="IVR context to handle the call.", examples=["banco"])
 # Personal data model
 class PersonalData(BaseModel):
-    sex: str = Field(..., description="Gender of the person ('M' for male, 'F' for female).")
-    name: str = Field(..., description="Name of the person.")
-    bank_name: str = Field(..., description="Name of the bank.")
-    credit_card: str = Field(..., description="Type of credit card.")
-    last_code: str = Field(..., min_length=4, max_length=4, description="Last 4 digits of the card.")
+    sex: str = Field(..., description="Gender of the person ('M' for male, 'F' for female).", examples=["M"])
+    name: str = Field(..., description="Name of the person.",examples=["John Doe"])
+    bank_name: str = Field(..., description="Name of the bank.", examples=["Bank of America"])
+    credit_card: str = Field(..., description="Type of credit card.", examples=["VISA CLASSIC"])
+    last_code: str = Field(..., min_length=4, max_length=4, description="Last 4 digits of the card.", examples=["1234"])
 
     class Config:
         schema_extra = {
@@ -88,8 +88,7 @@ def convert_to_wav(input_file, output_file):
 @app.post("/call", summary="Enpoint to make a call")
 async def generate_audio_es(data: CallParams):
     try:
-     await main( data)
-     return {"message": "Llamada realizada exitosamente"}
+        await main(data)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al llamar: {e}")
 
