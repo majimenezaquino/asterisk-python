@@ -1,5 +1,6 @@
 # telegram_handler.py
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from audio_conversation import get_conversation_handler
 from config import TELEGRAM_TOKEN, AUTHORIZED_CHAT_IDS, IVR_OPTIONS, user_data
 from models import Params
 
@@ -67,5 +68,6 @@ class TelegramBot:
         application = Application.builder().token(TELEGRAM_TOKEN).build()
         application.add_handler(CommandHandler("call", self.start_call))
         application.add_handler(CommandHandler("hangup", self.hangup))
+        application.add_handler(get_conversation_handler())
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
         return application
