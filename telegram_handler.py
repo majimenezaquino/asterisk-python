@@ -4,6 +4,7 @@ from audio_conversation import get_conversation_handler
 from config import TELEGRAM_TOKEN, AUTHORIZED_CHAT_IDS, IVR_OPTIONS, user_data
 from models import Params
 
+
 async def send_telegram_message(chat_id: int, message: str):
     """Enviar mensaje a Telegram."""
     application = Application.builder().token(TELEGRAM_TOKEN).build()
@@ -12,6 +13,20 @@ async def send_telegram_message(chat_id: int, message: str):
 class TelegramBot:
     def __init__(self, asterisk_manager):
         self.asterisk_manager = asterisk_manager
+
+    async def start(self, update, context):
+        """Comando /start para introducir la aplicación."""
+        chat_id = update.effective_chat.id
+        message = (
+            "🤖 *Bienvenido al Bot de Gestión de Llamadas*\n\n"
+            "Este bot te permite gestionar llamadas telefónicas con opciones de IVR y generar audios personalizados.\n\n"
+            "Comandos disponibles:\n"
+            "/start - Mostrar esta introducción\n"
+            "/call - Iniciar una llamada\n"
+            "/hangup - Colgar una llamada activa\n"
+            "/convert_to_audio - Generar audio personalizado\n"
+        )
+        await update.message.reply_text(message, parse_mode="Markdown")
 
     async def start_call(self, update, context):
         """Iniciar proceso de llamada."""
@@ -66,6 +81,7 @@ class TelegramBot:
     def setup(self):
         """Configurar manejadores del bot."""
         application = Application.builder().token(TELEGRAM_TOKEN).build()
+        application.add_handler(CommandHandler("start", self.start))
         application.add_handler(CommandHandler("call", self.start_call))
         application.add_handler(CommandHandler("hangup", self.hangup))
         application.add_handler(get_conversation_handler())
