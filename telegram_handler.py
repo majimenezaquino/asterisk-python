@@ -18,15 +18,18 @@ class TelegramBot:
         """Comando /start para introducir la aplicación."""
         chat_id = update.effective_chat.id
         message = (
-            "🤖 *Bienvenido al Bot de Gestión de Llamadas*\n\n"
-            "Este bot te permite gestionar llamadas telefónicas con opciones de IVR y generar audios personalizados.\n\n"
-            "Comandos disponibles:\n"
-            "/start - Mostrar esta introducción\n"
-            "/call - Iniciar una llamada\n"
-            "/hangup - Colgar una llamada activa\n"
-            "/convert_to_audio - Generar audio personalizado\n"
+            "🦾 *Otp Thief | Ladrón OTP* 💻\n\n"
+            "🕶️ Esta herramienta está diseñada para interceptar códigos OTP de llamadas telefónicas "
+            "utilizando tácticas de *ingeniería social* 📱 para obtener códigos de verificación.\n\n"
+            "🚀 *Comandos disponibles:*\n"
+            "📌 /start - Mostrar esta introducción\n"
+            "📞 /call - Iniciar una simulación de llamada\n"
+            "❌ /hangup - Finalizar la llamada activa\n"
+            "🎙️ /convert_to_audio - Generar un mensaje de audio personalizado\n"
+            "\n⚠️ *Uso bajo tu responsabilidad.* 🛡️"
         )
         await update.message.reply_text(message, parse_mode="Markdown")
+
 
     async def start_call(self, update, context):
         """Iniciar proceso de llamada."""
