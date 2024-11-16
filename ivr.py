@@ -155,5 +155,5 @@ async def main(data: Params):
         await manager.close()
         logger.info("Conexión AMI cerrada")
 
-# if __name__ == "__main__":
-#     asyncio.run(main( Params(channel='PJSIP/1001', ivr='banco')))
+if __name__ == "__main__":
+    asyncio.run(main( Params(channel='PJSIP/1001', ivr='banco')))
