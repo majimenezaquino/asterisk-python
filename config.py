@@ -3,7 +3,6 @@ import logging
 
 # Configuración del bot
 TELEGRAM_TOKEN = "7785556123:AAGOnrh2UshZOwAICaqc1hd_wEt04uKWW-g"
-AUTHORIZED_CHAT_IDS = [428655938]
 
 # Configuración de Asterisk
 ASTERISK_CONFIG = {

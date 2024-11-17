@@ -1,8 +1,10 @@
 # telegram_handler.py
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from audio_conversation import get_conversation_handler
-from config import TELEGRAM_TOKEN, AUTHORIZED_CHAT_IDS, IVR_OPTIONS, user_data
+from config import TELEGRAM_TOKEN,  IVR_OPTIONS, user_data
+from json_handler import get_chats_ids
 from models import Params
+from register_handler import get_registration_handler
 
 
 async def send_telegram_message(chat_id: int, message: str):
@@ -34,11 +36,25 @@ class TelegramBot:
     async def start_call(self, update, context):
         """Iniciar proceso de llamada."""
         chat_id = update.effective_chat.id
-        if chat_id in AUTHORIZED_CHAT_IDS and user_data.get(chat_id, {}).get('step', 'idle') == 'idle':
-            await send_telegram_message(chat_id, "📱 Ingresa el número:")
-            user_data[chat_id] = {'step': 'phone'}
-        else:
-            await send_telegram_message(chat_id, "⚠️ Llamada en curso o sin permisos")
+
+        # Obtener los chat IDs autorizados
+        AUTHORIZED_CHAT_IDS = await get_chats_ids()
+
+        # Verificar si el chat_id está autorizado
+        if chat_id not in AUTHORIZED_CHAT_IDS:
+            await send_telegram_message(chat_id, "❌ Sin permisos.")
+            return
+
+        # Verificar si el usuario ya está en otro paso
+        current_step = user_data.get(chat_id, {}).get('step', 'idle')
+        if current_step != 'idle':
+            await send_telegram_message(chat_id, "⚠️ Llamada en curso.")
+            return
+
+        # Todo está correcto, iniciar proceso
+        await send_telegram_message(chat_id, "📱 Ingresa el número:")
+        user_data[chat_id] = {'step': 'phone'}
+
 
     async def hangup(self, update, context):
         """Colgar llamada activa."""
@@ -88,5 +104,6 @@ class TelegramBot:
         application.add_handler(CommandHandler("call", self.start_call))
         application.add_handler(CommandHandler("hangup", self.hangup))
         application.add_handler(get_conversation_handler())
+        application.add_handler(get_registration_handler())
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
         return application

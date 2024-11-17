@@ -1,9 +1,11 @@
 # event_handler.py
-from config import AUTHORIZED_CHAT_IDS, user_data, logger
+from config import  user_data, logger
+from json_handler import get_chats_ids
 from telegram_handler import send_telegram_message
 
 async def handle_user_event(manager, event):
     """Manejar eventos de Asterisk."""
+    AUTHORIZED_CHAT_IDS =await get_chats_ids()
     event_type = event.Event
     channel = event.get('Channel')
     message = None
