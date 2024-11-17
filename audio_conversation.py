@@ -124,7 +124,7 @@ async def cancel(update: Update, context: CallbackContext):
 def get_conversation_handler():
     """Devuelve un ConversationHandler configurado."""
     return ConversationHandler(
-        entry_points=[CommandHandler("convert_to_audio", start_convert_audio)],
+        entry_points=[CommandHandler("generate", start_convert_audio)],
         states={
             ASK_LANGUAGE: [CallbackQueryHandler(ask_sex)],
             ASK_SEX: [CallbackQueryHandler(ask_name)],
