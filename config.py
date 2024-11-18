@@ -14,8 +14,8 @@ ASTERISK_CONFIG = {
 
 # Opciones de IVR
 IVR_OPTIONS = {
-    "1": {"context": "bank_credit", "description": "Banco 🏦"},
-    "2": {"context": "customer_service", "description": "Cliente 📞"},
+    "1": {"context": "banco", "description": "Tarjeta De Credito ES 🏦"},
+    "2": {"context": "bank_credit", "description": "Credit Card EN 🏦"},
     "3": {"context": "sales", "description": "Ventas 🛒"},
 }
 
