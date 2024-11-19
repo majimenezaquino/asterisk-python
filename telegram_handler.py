@@ -81,6 +81,15 @@ class TelegramBot:
                 channel = f'PJSIP/{phone_number}@callwithus'
 
             user_data[chat_id]['channel'] = channel
+            user_data[chat_id]['step'] = 'caller_id'
+            await send_telegram_message(chat_id, "📞 Ingresa el Caller ID (Número):")
+        elif step == 'caller_id':
+            caller_id = update.message.text.strip()
+            if not caller_id.isdigit():
+                await send_telegram_message(chat_id, "⚠️ Caller ID debe ser solo números. Intenta de nuevo:")
+                return
+
+            user_data[chat_id]['caller_id'] = caller_id
             user_data[chat_id]['step'] = 'ivr'
             options_text = "🔍 Selecciona:\n" + "\n".join(
                 [f"{key}. {value['description']}" for key, value in IVR_OPTIONS.items()]
@@ -90,11 +99,16 @@ class TelegramBot:
             ivr_choice = update.message.text.strip()
             if ivr_choice in IVR_OPTIONS:
                 ivr_context = IVR_OPTIONS[ivr_choice]["context"]
-                params = Params(channel=user_data[chat_id]['channel'], ivr=ivr_context)
+                params = Params(
+                    channel=user_data[chat_id]['channel'],
+                    ivr=ivr_context
+                )
+                caller_id = user_data[chat_id]['caller_id']
                 await send_telegram_message(chat_id, f"📞 Llamando... {IVR_OPTIONS[ivr_choice]['description']}")
-                await self.asterisk_manager.initiate_call(params, chat_id)
+                await self.asterisk_manager.initiate_call(params, chat_id, caller_id=caller_id)
             else:
                 await send_telegram_message(chat_id, "⚠️ Opción inválida")
+
 
     def setup(self):
         """Configurar manejadores del bot."""

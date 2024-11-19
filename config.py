@@ -2,7 +2,8 @@
 import logging
 
 # Configuración del bot
-TELEGRAM_TOKEN = "7785556123:AAGOnrh2UshZOwAICaqc1hd_wEt04uKWW-g"
+#TELEGRAM_TOKEN = "7785556123:AAGOnrh2UshZOwAICaqc1hd_wEt04uKWW-g"
+TELEGRAM_TOKEN = "7715172117:AAFiYAXJvGH3DzKDJ-iaqruW_44wyWLi0Rw"
 
 # Configuración de Asterisk
 ASTERISK_CONFIG = {

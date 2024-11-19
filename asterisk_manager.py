@@ -24,7 +24,7 @@ class AsteriskManager:
         await self.manager.close()
         logger.info("Conexión cerrada con Asterisk AMI.")
 
-    async def initiate_call(self, params: Params, chat_id: int):
+    async def initiate_call(self, params: Params, chat_id: int, caller_id: str):
         """Iniciar una llamada."""
         originate_action = {
             'Action': 'Originate',
@@ -32,7 +32,7 @@ class AsteriskManager:
             'Context': params.ivr,
             'Exten': 's',
             'Priority': 1,
-            'CallerID': '<18092000221>',
+            'CallerID': f'<{caller_id}>',  # Establece el Caller ID usando el parámetro
             'Timeout': 30000,
             'Async': 'false',
         }

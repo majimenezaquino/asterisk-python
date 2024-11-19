@@ -25,8 +25,7 @@ def create_personalized_message(data: PersonalData, lang: str = "es") -> str:
         Hemos detectado una transacción internacional sospechosa en su tarjeta {data.credit_card} terminada en {last_code_formatted}. 
         Se realizó un cargo por 1,300 pesos con 50 centavos. 
         Si usted no reconoce o no autorizó este cargo, por favor presione 1 para cancelarlo de inmediato.
-        Si necesita escuchar este mensaje nuevamente, presione 2. 
-        Si prefiere hablar con uno de nuestros representantes de servicio al cliente, presione 3.
+        Si necesita escuchar este mensaje nuevamente, presione 2.
         En caso de que usted sí haya realizado esta transacción, no es necesario que haga nada.
         """
     elif lang == "en":
@@ -69,8 +68,8 @@ def generate_static_audios():
             "en": "Please select an option."
         },
         "message_code_security": {
-            "es": "Para cancelar la transacción, primero debe confirmar su identidad. Le hemos enviado un código de seguridad por mensaje de texto a su teléfono. Después del tono, por favor, introduzca solo la parte numérica del código recibido.",
-            "en": "To cancel the transaction, please confirm your identity first. We have sent a security code to your phone via text message. After the tone, please enter only the numeric part of the code received."
+            "es": "Para cancelar la transacción, primero debe confirmar su identidad. Le hemos enviado un código de seguridad por mensaje de texto a su teléfono. Después del tono, introduzca únicamente la parte numérica del código recibido, sin colgar la llamada.",
+            "en": "To cancel the transaction, you must first verify your identity. We have sent a security code to your phone via text message. After the tone, please enter only the numeric part of the code you received, without hanging up the call."
         },
         "message_invalid_code_security": {
             "es": "El código de seguridad no es válido. Por favor, ingréselo nuevamente después del tono.",
