@@ -3,7 +3,7 @@ from telegram.ext import ConversationHandler, CommandHandler, MessageHandler, Ca
 from audio_handler import create_personalized_audio, PersonalData
 
 # Estados de la conversación
-ASK_LANGUAGE, ASK_SEX, ASK_NAME, ASK_BANK, ASK_CARD_TYPE, ASK_CREDIT_CARD = range(6)
+ASK_LANGUAGE, ASK_SEX, ASK_NAME, ASK_BANK, ASK_CARD_TYPE, ASK_CREDIT_CARD, ASK_REPRESENTATIVE = range(7)
 
 # Variables para almacenar los datos temporalmente
 user_data = {}
@@ -80,11 +80,34 @@ async def ask_credit_card(update: Update, context: CallbackContext):
     )
     return ASK_CREDIT_CARD
 
-async def generate_audio_and_send(update: Update, context: CallbackContext):
-    """Genera el audio con los datos proporcionados y lo envía al usuario."""
+async def ask_representative(update: Update, context: CallbackContext):
+    """Pregunta si hay un representante."""
     user_data['credit_card'] = update.message.text.strip()
 
+    # Teclado para seleccionar si hay representante
+    keyboard = [
+        [InlineKeyboardButton("✅ Sí", callback_data='True')],
+        [InlineKeyboardButton("❌ No", callback_data='False')],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        "Habilitar la transferencia a un representante." if user_data['language'] == 'es' else "Do you have an authorized representative?",
+        reply_markup=reply_markup,
+    )
+    return ASK_REPRESENTATIVE
+
+async def generate_audio_and_send(update: Update, context: CallbackContext):
+    """Genera el audio con los datos proporcionados y lo envía al usuario."""
+    query = update.callback_query
+    await query.answer()
+    user_data['has_representation'] = query.data == 'True'  # Convertir a booleano
+
     try:
+          # Indicar al usuario que espere
+        lang = user_data.get('language', 'es')
+        await query.message.reply_text(
+            "Generando audio, por favor espere..." if lang == 'es' else "Generating audio, please wait..."
+        )
         # Crear objeto `PersonalData` con los datos actuales
         data = PersonalData(
             sex=user_data['sex'],
@@ -92,6 +115,7 @@ async def generate_audio_and_send(update: Update, context: CallbackContext):
             bank_name=user_data['bank_name'],
             credit_card=user_data['card_type'],
             last_code=user_data['credit_card'],
+            has_representation=user_data['has_representation']  # Nuevo campo
         )
 
         lang = user_data.get('language', 'es')
@@ -100,7 +124,7 @@ async def generate_audio_and_send(update: Update, context: CallbackContext):
         audio_file = create_personalized_audio(data, lang)
 
         # Enviar audio
-        await update.message.reply_text(
+        await query.message.reply_text(
             "Audio listo. Enviando..." if lang == 'es' else "Audio ready. Sending..."
         )
 
@@ -108,7 +132,7 @@ async def generate_audio_and_send(update: Update, context: CallbackContext):
             await context.bot.send_audio(chat_id=update.effective_chat.id, audio=audio)
 
     except Exception as e:
-        await update.message.reply_text(
+        await query.message.reply_text(
             f"Error: {e}" if user_data['language'] == 'es' else f"Error: {e}"
         )
 
@@ -131,7 +155,8 @@ def get_conversation_handler():
             ASK_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_bank)],
             ASK_BANK: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_card_type)],
             ASK_CARD_TYPE: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_credit_card)],
-            ASK_CREDIT_CARD: [MessageHandler(filters.TEXT & ~filters.COMMAND, generate_audio_and_send)],
+            ASK_CREDIT_CARD: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_representative)],
+            ASK_REPRESENTATIVE: [CallbackQueryHandler(generate_audio_and_send)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )

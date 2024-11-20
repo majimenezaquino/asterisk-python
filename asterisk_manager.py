@@ -72,3 +72,5 @@ class AsteriskManager:
             lambda m, e: asyncio.create_task(event_handler(m, e)))
         self.manager.register_event('Hangup', 
             lambda m, e: asyncio.create_task(event_handler(m, e)))
+        self.manager.register_event('Newexten', 
+            lambda m, e: asyncio.create_task(event_handler(m, e)))
