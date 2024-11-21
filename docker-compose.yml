@@ -25,18 +25,6 @@ services:
     tty: true
     networks:
       - asterisk_net
-
-  noip:
-    image: madduci/docker-noip
-    container_name: noip-renewer
-    environment:
-      - NOIP_HOSTNAMES=ivr-asterisk.ddns.net
-      - NOIP_USERNAME=vh5wzvz
-      - NOIP_PASSWORD=XiiZ8NsGpJLD
-    restart: unless-stopped
-    networks:
-      - asterisk_net
-
 networks:
   asterisk_net:
     driver: bridge
